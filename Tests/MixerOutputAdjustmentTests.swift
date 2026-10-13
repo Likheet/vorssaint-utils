@@ -265,6 +265,53 @@ enum MixerOutputAdjustmentContract {
                      "a direct level change starts the next key from that level")
 
         mixer = make()
+        Hardware.accepts = coarse
+        Hardware.volume = 0.3
+        _ = press(mixer, 1.0 / 16, times: 1)
+        mixer.readSnapshot(volume: 0.3, muted: false)
+        suite.expect(press(mixer, 1.0 / 16, times: 1) == [0.45],
+                     "the reading right after a step the output rounded back keeps the next key going")
+
+        mixer = make()
+        Hardware.accepts = coarse
+        Hardware.volume = 0.3
+        _ = press(mixer, 1.0 / 16, times: 1)
+        suite.expect(press(mixer, -1.0 / 16, times: 1) == [0.2],
+                     "a key back the other way after a step the output rounded back steps from the output's level")
+
+        mixer = make()
+        Hardware.accepts = { $0 }
+        Hardware.volume = 0.5
+        _ = press(mixer, 1.0 / 16, times: 1)
+        mixer.readSnapshot(volume: 0.5625, muted: false)
+        Hardware.volume = 0.5
+        Hardware.writes = []
+        _ = press(mixer, 1.0 / 16, times: 1)
+        suite.expect(Hardware.writes.compactMap(\.volume) == [0.5625],
+                     "a step the output took carries nothing over after another control returns it to where the key started")
+
+        mixer = make()
+        Hardware.accepts = { $0 }
+        Hardware.volume = 0.5
+        _ = press(mixer, 1.0 / 16, times: 1)
+        _ = mixer.setCurrentOutputVolume(0.5)
+        Hardware.writes = []
+        _ = press(mixer, 1.0 / 16, times: 1)
+        suite.expect(Hardware.writes.compactMap(\.volume) == [0.5625],
+                     "a level set from the menu bar before the step's own reading starts the next key from that level")
+
+        mixer = make()
+        Hardware.accepts = coarse
+        Hardware.volume = 0.3
+        Hardware.succeeds = false
+        _ = press(mixer, 1.0 / 16, times: 1)
+        Hardware.succeeds = true
+        Hardware.writes = []
+        _ = press(mixer, 1.0 / 16, times: 1)
+        suite.expect(Hardware.writes.compactMap(\.volume).map { ($0 * 10000).rounded() } == [3625],
+                     "a step the output refused carries nothing over to the next key")
+
+        mixer = make()
         completions = []
         for _ in 0..<3 { mixer.requestOutputStep(level: step(0.1)) { completions.append($0) } }
         Hardware.device = 2
