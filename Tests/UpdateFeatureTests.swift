@@ -1896,6 +1896,23 @@ enum UpdateFeatureTests {
             homeDirectory: "/Users/test")
         suite.expect(discoveredPaths == ["/Applications/Editor.app", "/Users/test/Tools/Side App.app"],
                "shared app discovery keeps installed apps and rejects system, transient, nested and duplicate copies")
+        // Xcode keeps the tools people open in its own Contents/Applications
+        // folder. Those count as apps; helpers elsewhere in a bundle do not.
+        let bundleFixture = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vorssaint-bundled-apps-\(UUID().uuidString)", isDirectory: true)
+        let host = bundleFixture.appendingPathComponent("Host.app", isDirectory: true)
+        let tool = host.appendingPathComponent("Contents/Applications/Tool.app", isDirectory: true)
+        let plain = bundleFixture.appendingPathComponent("Plain.app", isDirectory: true)
+        for folder in [tool, plain, host.appendingPathComponent("Contents/Library/LoginItems/Helper.app")] {
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        }
+        FileManager.default.createFile(
+            atPath: host.appendingPathComponent("Contents/Applications/ReadMe.txt").path, contents: Data())
+        suite.expect(InstalledApps.bundledApplications(in: host).map(\.standardizedFileURL.path)
+                == [tool.standardizedFileURL.path]
+                && InstalledApps.bundledApplications(in: plain).isEmpty,
+               "an app's Contents/Applications tools are found and its helpers are not")
+        try? FileManager.default.removeItem(at: bundleFixture)
 
         let noon = Date(timeIntervalSince1970: 1_800_000_000)
         suite.expect(AppUpdatesSupport.nextCheckDate(lastCheck: noon, frequency: .off, now: noon) == nil,
