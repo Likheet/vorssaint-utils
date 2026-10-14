@@ -103,27 +103,32 @@ enum InstalledApps {
 
     /// The apps an app ships for people to open, in its own
     /// Contents/Applications folder, where Xcode keeps Instruments, FileMerge
-    /// and its other tools. Helpers anywhere else in a bundle, such as login
+    /// and its other tools, and in Contents/Developer/Applications, where it
+    /// keeps Simulator. Helpers anywhere else in a bundle, such as login
     /// items or a browser's renderer apps, are not apps a person opens.
     static func bundledApplications(in appURL: URL, fileManager fm: FileManager = .default) -> [URL] {
-        let folder = appURL.appendingPathComponent("Contents/Applications", isDirectory: true)
-        guard let names = try? fm.contentsOfDirectory(atPath: folder.path) else { return [] }
-        return names.filter { $0.lowercased().hasSuffix(".app") }.sorted()
-            .map { folder.appendingPathComponent($0, isDirectory: true) }
+        ["Contents/Applications", "Contents/Developer/Applications"].flatMap { relativePath -> [URL] in
+            let folder = appURL.appendingPathComponent(relativePath, isDirectory: true)
+            guard let names = try? fm.contentsOfDirectory(atPath: folder.path) else { return [] }
+            return names.filter { $0.lowercased().hasSuffix(".app") }.sorted()
+                .map { folder.appendingPathComponent($0, isDirectory: true) }
+        }
     }
 
     /// `includeBundledApplications` adds the tools apps ship for people, for
     /// a search that should find them. Pickers that act on whole apps, such as
-    /// the uninstaller's, leave them out.
+    /// the uninstaller's, leave them out. `roots` replaces the application
+    /// folders, so a test can walk a fixture instead of this Mac.
     static func installedApplications(includeSystemApplications: Bool = false,
                                       includeBundledApplications: Bool = false,
-                                      spotlightPaths: [String] = []) -> [InstalledApp] {
+                                      spotlightPaths: [String] = [],
+                                      roots folders: [URL]? = nil) -> [InstalledApp] {
         let fm = FileManager.default
-        var roots = [
+        var roots = folders ?? [
             URL(fileURLWithPath: "/Applications", isDirectory: true),
             URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Applications", isDirectory: true),
         ]
-        if includeSystemApplications {
+        if includeSystemApplications, folders == nil {
             roots.append(URL(fileURLWithPath: "/System/Applications", isDirectory: true))
         }
         let keys: [URLResourceKey] = [.isDirectoryKey, .isPackageKey]
@@ -172,6 +177,13 @@ enum InstalledApps {
             guard fm.fileExists(atPath: path),
                   seen.insert(url.standardizedFileURL.path).inserted else { continue }
             apps.append(app(at: url, fileManager: fm))
+            // A copy of Xcode kept in the home folder ships the same tools as
+            // one in an application folder.
+            guard includeBundledApplications else { continue }
+            for tool in bundledApplications(in: url, fileManager: fm)
+            where seen.insert(tool.resolvingSymlinksInPath().standardizedFileURL.path).inserted {
+                apps.append(app(at: tool, fileManager: fm))
+            }
         }
 
         return apps.sorted {
