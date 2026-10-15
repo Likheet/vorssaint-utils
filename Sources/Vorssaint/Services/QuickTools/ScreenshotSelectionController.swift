@@ -904,6 +904,12 @@ private final class ScreenshotOverlayPanel: OverlayPanel {
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         hidesOnDeactivate = false
         acceptsMouseMovedEvents = true
+        // Live, the panel is clear, and with the controls in Dynamic Island it
+        // draws nothing over the desktop until a drag starts. Left at its
+        // default, a window hands a press on a fully transparent pixel to
+        // whatever is under it, so the desktop took the drag instead of the
+        // selection (#3005). Set explicitly, the panel takes every press.
+        ignoresMouseEvents = false
 
         // The frozen still sits in its own view UNDER the chrome: a backing
         // layer configured before the view joins a window can lose its

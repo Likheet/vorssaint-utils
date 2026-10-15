@@ -1404,6 +1404,22 @@ enum ScreenshotFeatureTests {
             .components(separatedBy: "\n}").first ?? ""
         suite.expect(overlayViewBody.contains("acceptsFirstMouse") && overlayViewBody.contains("acceptsFirstMouse(for event: NSEvent?) -> Bool { true }"),
                "the capture surface claims the first click so a drag works while Dynamic Island holds key focus")
+        // The other half of that drag: live, the panel is clear and draws no
+        // dim over the desktop until the drag starts, and a window left at the
+        // default passes a press on a transparent pixel through to the desktop.
+        // A session can start live, so the assignment must be a statement of
+        // the initializer itself, not a branch or a later update, and nothing
+        // in the class may set the property to true.
+        let overlayPanelBody = selectionSource.components(separatedBy: "\n")
+            .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
+            .joined(separator: "\n")
+            .components(separatedBy: "class ScreenshotOverlayPanel").dropFirst().first?
+            .components(separatedBy: "\n}").first ?? ""
+        let overlayPanelInit = overlayPanelBody.components(separatedBy: "super.init(contentRect:").dropFirst().first?
+            .components(separatedBy: "\n    }").first ?? ""
+        suite.expect(overlayPanelInit.components(separatedBy: "\n").contains("        ignoresMouseEvents = false")
+                && !overlayPanelBody.contains("ignoresMouseEvents = true"),
+               "the clear capture surface takes a press over the bare desktop instead of passing it through")
         // Both editors state a size the same way. The recorder wrote
         // "1960x1274" beside a screenshot editor that already read
         // "2940 \u{00D7} 1912 px", and the letter x is the tell.
