@@ -12,6 +12,14 @@ enum ClipboardSensitiveTextPreferenceTests {
         suite.expect(Defaults.registeredDefaults[legacyKey] == nil,
                      "the old enabled-by-default filter is no longer registered")
 
+        // Registered defaults are shared by every suite in the process. Put them
+        // back so later migration checks still start from an untouched setup.
+        let registrationDomain = UserDefaults.standard.volatileDomain(
+            forName: UserDefaults.registrationDomain)
+        defer {
+            UserDefaults.standard.setVolatileDomain(registrationDomain,
+                                                    forName: UserDefaults.registrationDomain)
+        }
         let domain = "com.vorssaint.tests.clipboard-sensitive-opt-in.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: domain)!
         defer { defaults.removePersistentDomain(forName: domain) }
