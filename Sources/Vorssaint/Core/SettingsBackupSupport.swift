@@ -204,6 +204,7 @@ enum SettingsBackupSupport {
         settings = portableMediaSettings(settings)
         settings = portableMouseExceptions(settings)
         settings = portableWindowLayoutIgnoredApps(settings)
+        settings = portableThumbnailPauseLists(settings)
         return [
             formatVersionKey: formatVersion,
             appVersionKey: appVersion,
@@ -221,8 +222,8 @@ enum SettingsBackupSupport {
         else { return nil }
         let allowed = exportKeys()
         let filtered = settings.filter { allowed.contains($0.key) && valueLooksRight($0.key, $0.value) }
-        return portableNotchDisplay(portableWindowLayoutIgnoredApps(
-            portableMouseExceptions(portableMediaSettings(filtered))))
+        return portableNotchDisplay(portableThumbnailPauseLists(portableWindowLayoutIgnoredApps(
+            portableMouseExceptions(portableMediaSettings(filtered)))))
     }
 
     /// A display mode this version does not offer, such as one kept by an
@@ -307,6 +308,21 @@ enum SettingsBackupSupport {
             settings[DefaultsKey.windowLayoutIgnoredApps] = apps.filter {
                 !MouseAppExceptionSupport.isExecutablePathIdentity($0)
             }
+        }
+        return settings
+    }
+
+    /// The lists of apps where Dock Preview and the switcher stop capturing
+    /// thumbnails. They take a program that is not an app by its path, too
+    /// (issue #3033).
+    static let thumbnailPauseListKeys = [DefaultsKey.windowPreviewExcludedApps,
+                                         DefaultsKey.switcherPreviewExcludedApps]
+
+    private static func portableThumbnailPauseLists(_ source: [String: Any]) -> [String: Any] {
+        var settings = source
+        for key in thumbnailPauseListKeys {
+            guard let apps = settings[key] as? [String] else { continue }
+            settings[key] = apps.filter { !MouseAppExceptionSupport.isExecutablePathIdentity($0) }
         }
         return settings
     }
