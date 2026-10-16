@@ -1420,6 +1420,26 @@ enum ScreenshotFeatureTests {
         suite.expect(overlayPanelInit.components(separatedBy: "\n").contains("        ignoresMouseEvents = false")
                 && !overlayPanelBody.contains("ignoresMouseEvents = true"),
                "the clear capture surface takes a press over the bare desktop instead of passing it through")
+        // Taking every press lasts until the window is really gone, and AppKit
+        // fades the panel out after `orderOut`, so a quick click or the first
+        // scroll after a capture landed on the leaving panel. Every path that
+        // orders the panels out goes through the retire step, which lets go of
+        // the mouse and flushes that to the window server before they leave.
+        let selectionCode = selectionSource.components(separatedBy: "\n")
+            .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
+            .joined(separator: "\n")
+        func selectionMethod(_ signature: String) -> String {
+            selectionCode.components(separatedBy: signature).dropFirst().first?
+                .components(separatedBy: "\n    }").first ?? ""
+        }
+        let retireBody = selectionMethod("private func retirePanels()")
+        let retireSteps = ["$0.ignoresMouseEvents = true", "CATransaction.flush()", "$0.orderOut(nil)"]
+            .compactMap { retireBody.range(of: $0)?.lowerBound }
+        suite.expect(retireSteps.count == 3 && retireSteps == retireSteps.sorted()
+                && selectionCode.components(separatedBy: "orderOut(").count == 2
+                && selectionMethod("private func captureLive(").contains("retirePanels()")
+                && selectionMethod("private func finish(").contains("retirePanels()"),
+               "a capture surface leaving the screen stops taking the mouse before its fade")
         // Both editors state a size the same way. The recorder wrote
         // "1960x1274" beside a screenshot editor that already read
         // "2940 \u{00D7} 1912 px", and the letter x is the tell.
