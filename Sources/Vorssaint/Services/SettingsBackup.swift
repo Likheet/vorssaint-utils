@@ -98,6 +98,9 @@ enum SettingsBackup {
         for (key, value) in settings {
             defaults.set(value, forKey: key)
         }
+        if let shared = SettingsBackupSupport.sharedSwitcherPauseList(in: settings) {
+            defaults.set(shared, forKey: DefaultsKey.switcherPreviewExcludedApps)
+        }
         if let restored = settings[DefaultsKey.recorderEditorPresets] as? Data {
             defaults.set(SettingsBackupSupport.preservingLocalPresetImages(
                 restored: restored, local: localRecorderPresets), forKey: DefaultsKey.recorderEditorPresets)
