@@ -651,15 +651,23 @@ enum SwitcherSupport {
         }
     }
 
-    /// A program that is not an app, such as the Java a game runs on, has no
-    /// bundle identifier and is listed by its path instead (issue #3033).
+    /// A program that is not an app, such as the Java a game runs on, is
+    /// listed by its path (issue #3033), and it is matched by that path even
+    /// when it reports a bundle identifier. Java's launcher carries one of its
+    /// own (net.java.openjdk.java in an OpenJDK build), the same for every Java
+    /// program, so the identifier can't tell the runtime that was picked from
+    /// any other. The path is read only when a path is listed, so an ordinary
+    /// app never pays for it.
     static func shouldPausePreviewCapture(frontmostBundleIdentifier: String?,
                                           frontmostExecutablePath: @autoclosure () -> String? = nil,
                                           excludedBundleIdentifiers: [String]) -> Bool {
-        guard let identity = MouseAppExceptionSupport.identity(bundleID: frontmostBundleIdentifier,
-                                                               executablePath: frontmostExecutablePath())
+        if let frontmostBundleIdentifier, excludedBundleIdentifiers.contains(frontmostBundleIdentifier) {
+            return true
+        }
+        guard excludedBundleIdentifiers.contains(where: MouseAppExceptionSupport.isExecutablePathIdentity),
+              let path = MouseAppExceptionSupport.executablePathIdentity(frontmostExecutablePath())
         else { return false }
-        return excludedBundleIdentifiers.contains(identity)
+        return excludedBundleIdentifiers.contains(path)
     }
 
     static func needsScreenRecording(switcherEnabled: Bool,
