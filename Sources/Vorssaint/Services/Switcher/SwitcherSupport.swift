@@ -675,22 +675,20 @@ enum SwitcherSupport {
     }
 
     /// A program that is not an app, such as the Java a game runs on, is
-    /// listed by its path (issue #3033), and it is matched by that path even
-    /// when it reports a bundle identifier. Java's launcher carries one of its
-    /// own (net.java.openjdk.java in an OpenJDK build), the same for every Java
-    /// program, so the identifier can't tell the runtime that was picked from
-    /// any other. The path is read only when a path is listed, so an ordinary
-    /// app never pays for it.
+    /// listed by its path (issue #3033) and matched the way the mouse
+    /// exceptions and Window Layout match it, by that path as well as by its
+    /// bundle identifier. A JVM that AWT registers reports the identifier of
+    /// Java's launcher, the same for every program that runtime runs, so only
+    /// the path tells the runtime that was picked apart. The path is read only
+    /// when a path is listed, so an ordinary app never pays for it.
     static func shouldPausePreviewCapture(frontmostBundleIdentifier: String?,
                                           frontmostExecutablePath: @autoclosure () -> String? = nil,
                                           excludedBundleIdentifiers: [String]) -> Bool {
-        if let frontmostBundleIdentifier, excludedBundleIdentifiers.contains(frontmostBundleIdentifier) {
-            return true
-        }
-        guard excludedBundleIdentifiers.contains(where: MouseAppExceptionSupport.isExecutablePathIdentity),
-              let path = MouseAppExceptionSupport.executablePathIdentity(frontmostExecutablePath())
-        else { return false }
-        return excludedBundleIdentifiers.contains(path)
+        MouseAppExceptionSupport.identities(
+            bundleID: frontmostBundleIdentifier,
+            executablePath: frontmostExecutablePath(),
+            readsPath: excludedBundleIdentifiers.contains(where: MouseAppExceptionSupport.isExecutablePathIdentity))
+            .contains(where: excludedBundleIdentifiers.contains)
     }
 
     static func needsScreenRecording(switcherEnabled: Bool,

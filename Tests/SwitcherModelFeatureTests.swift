@@ -562,8 +562,9 @@ enum SwitcherModelFeatureTests {
             frontmostExecutablePath: "/Users/tester/bin/other",
             excludedBundleIdentifiers: [programPath]),
                "a listed path pauses only that program")
-        // Java's launcher reports a bundle identifier of its own, the same for
-        // every Java program, so the runtime picked is told apart by its path.
+        // A JVM that AWT registers reports the bundle identifier of Java's
+        // launcher, the same for every program that runtime runs, so the
+        // runtime picked is told apart by its path.
         let javaPath = "/Users/tester/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/java"
         suite.expect(SwitcherSupport.shouldPausePreviewCapture(
             frontmostBundleIdentifier: "net.java.openjdk.java",
@@ -3854,11 +3855,20 @@ enum SwitcherModelFeatureTests {
         let javaRuntime = "/Users/tester/Library/Application Support/minecraft/runtime/java-runtime-delta/bin/java"
         previewDefaults.lists[DefaultsKey.switcherPreviewExcludedApps] = ["com.example.game", javaRuntime]
         PreviewProvider.NSWorkspace.shared.frontmostApplication = .init(
-            bundleIdentifier: "net.java.openjdk.java", executableURL: URL(fileURLWithPath: javaRuntime))
+            bundleIdentifier: nil, executableURL: URL(fileURLWithPath: javaRuntime))
         suite.expect(PreviewProvider.captureIsPaused(excludedAppsKey: DefaultsKey.switcherPreviewExcludedApps)
                 && !PreviewProvider.captureIsPaused(excludedAppsKey: DefaultsKey.windowPreviewExcludedApps),
-               "a game's Java runtime on the switcher's list pauses switcher captures while it is in front, "
-                   + "though it reports Java's bundle identifier")
+               "a game's Java runtime on the switcher's list pauses switcher captures while it is in front")
+        // A game on LWJGL 2 (Minecraft 1.12.2 and older) starts AWT, which
+        // registers the JVM under the bundle identifier of Java's launcher.
+        let legacyRuntime = "/Users/tester/Library/Application Support/minecraft/runtime/jre-legacy/bin/java"
+        previewDefaults.lists[DefaultsKey.switcherPreviewExcludedApps] = ["com.example.game", legacyRuntime]
+        PreviewProvider.NSWorkspace.shared.frontmostApplication = .init(
+            bundleIdentifier: "net.java.openjdk.cmd", executableURL: URL(fileURLWithPath: legacyRuntime))
+        suite.expect(PreviewProvider.captureIsPaused(excludedAppsKey: DefaultsKey.switcherPreviewExcludedApps)
+                && !PreviewProvider.captureIsPaused(excludedAppsKey: DefaultsKey.windowPreviewExcludedApps),
+               "a legacy game's Java runtime on the switcher's list pauses switcher captures while it is in front, "
+                   + "though AWT registered it under Java's bundle identifier")
         let defaultSwitcherHints = SwitcherSupport.shortcutHints(for: .switcherDefault,
                                                                  windowShortcut: .switcherWindowDefault)
         // Grave and J print the cap the active keyboard layout carries, not the
