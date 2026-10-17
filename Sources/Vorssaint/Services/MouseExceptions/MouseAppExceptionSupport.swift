@@ -141,8 +141,8 @@ enum MouseAppExceptionSupport {
         return exceptions.contains(bundleID)
     }
 
-    /// A program that is not packaged as an app has no bundle identifier at
-    /// all — the Java process a game launcher starts is the one people ask
+    /// A program that is not packaged as an app can have no bundle identifier
+    /// at all — the Java process a game launcher starts is the one people ask
     /// about (issue #1009) — so the path of the file being run stands in as
     /// its identity. A stored path is told apart from a bundle identifier by
     /// its leading slash, which a bundle identifier never has, so one list

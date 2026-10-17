@@ -575,6 +575,11 @@ enum SwitcherModelFeatureTests {
                    frontmostExecutablePath: "/Users/tester/Library/Java/JavaVirtualMachines/zulu-21.jdk/Contents/Home/bin/java",
                    excludedBundleIdentifiers: [javaPath]),
                "a Java runtime listed by its path pauses although it reports Java's bundle identifier, and no other runtime does")
+        suite.expect(SwitcherSupport.shouldPausePreviewCapture(
+            frontmostBundleIdentifier: "com.example.focused",
+            frontmostExecutablePath: "/Applications/Focused.app/Contents/MacOS/Focused",
+            excludedBundleIdentifiers: ["com.example.focused", javaPath]),
+               "an app on the list still pauses by its bundle identifier while the list also names a program by its path")
         var appPathWasRead = false
         _ = SwitcherSupport.shouldPausePreviewCapture(
             frontmostBundleIdentifier: "com.example.other",
@@ -3186,9 +3191,10 @@ enum SwitcherModelFeatureTests {
                                                executablePath: "/Applications/Game",
                                                apps: ["/Applications/Game"]),
                "window layout pauses for a focused executable without a bundle identifier")
-        // Java's launcher carries an Info.plist of its own, so a running JVM
-        // reports a bundle identifier that every Java program shares (issue
-        // #1009). The runtime that was picked is told apart by its path.
+        // Java's launcher carries an Info.plist of its own, and a JVM that AWT
+        // registers reports a bundle identifier that every Java program on
+        // that runtime shares (issue #1009). The runtime that was picked is
+        // told apart by its path.
         let ignoredRuntime = "/Users/tester/Library/Application Support/PrismLauncher/java/java-runtime-gamma/bin/java"
         suite.expect(WindowLayoutIgnoredApps.matches(bundleID: "net.java.openjdk.java",
                                                executablePath: ignoredRuntime,

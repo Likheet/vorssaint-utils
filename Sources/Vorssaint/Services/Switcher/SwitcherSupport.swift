@@ -680,7 +680,7 @@ enum SwitcherSupport {
     /// bundle identifier. A JVM that AWT registers reports the identifier of
     /// Java's launcher, the same for every program that runtime runs, so only
     /// the path tells the runtime that was picked apart. The path is read only
-    /// when a path is listed, so an ordinary app never pays for it.
+    /// while the list names one.
     static func shouldPausePreviewCapture(frontmostBundleIdentifier: String?,
                                           frontmostExecutablePath: @autoclosure () -> String? = nil,
                                           excludedBundleIdentifiers: [String]) -> Bool {
