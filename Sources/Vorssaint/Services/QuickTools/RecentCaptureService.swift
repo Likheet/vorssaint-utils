@@ -82,6 +82,8 @@ final class RecentCaptureService: ObservableObject {
             return
         }
         removePanelMonitors()
+        // Ordering out alone keeps the confirmation attached for the next opening.
+        if let panel, let sheet = panel.attachedSheet { panel.endSheet(sheet) }
         panel?.orderOut(nil)
     }
 
